@@ -425,6 +425,16 @@ async def handle_list_models(request: Any) -> Response:
                 "created_at": "1970-01-01T00:00:00Z",
             }
         )
+        # Advertise context limits when configured so clients (e.g. omp)
+        # can discover the correct window without per-machine modelOverrides.
+        cw = _config.model_context_windows.get(name)
+        if cw is not None:
+            data[-1]["contextWindow"] = cw
+            data[-1]["context_length"] = cw
+        mt = _config.model_max_tokens.get(name)
+        if mt is not None:
+            data[-1]["maxTokens"] = mt
+            data[-1]["max_output_tokens"] = mt
     return JSONResponse(
         {
             "object": "list",

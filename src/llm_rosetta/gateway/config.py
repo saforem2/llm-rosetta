@@ -228,6 +228,31 @@ class GatewayConfig:
             self._parse_models(raw.get("models", {}), self._raw_providers)
         )
 
+        # Per-model context window / output limits (for /v1/models discovery).
+        # Optional per-model keys: context_window (or contextWindow) and
+        # max_tokens (or maxTokens). Also honours a top-level model_defaults
+        # block so shared limits don't need repeating on every entry.
+        self.model_context_windows: dict[str, int] = {}
+        self.model_max_tokens: dict[str, int] = {}
+        for _mname, _mval in raw.get("models", {}).items():
+            if isinstance(_mval, dict):
+                _cw = _mval.get("context_window", _mval.get("contextWindow"))
+                _mt = _mval.get("max_tokens", _mval.get("maxTokens"))
+                if _cw is not None:
+                    self.model_context_windows[_mname] = int(_cw)
+                if _mt is not None:
+                    self.model_max_tokens[_mname] = int(_mt)
+        _defaults = raw.get("model_defaults", {})
+        _dcw = _defaults.get("context_window", _defaults.get("contextWindow"))
+        _dmt = _defaults.get("max_tokens", _defaults.get("maxTokens"))
+        if _dcw is not None:
+            for _n in self.models:
+                self.model_context_windows.setdefault(_n, int(_dcw))
+        if _dmt is not None:
+            for _n in self.models:
+                self.model_max_tokens.setdefault(_n, int(_dmt))
+
+
         # Per-model URL template overrides.
         self.model_url_templates: dict[str, str] = {}
         self.model_stream_url_templates: dict[str, str] = {}
